@@ -1,0 +1,30 @@
+{
+  "name": "chatmarks",
+  "description": "Highlight and bookmark anything in your AI chats, then jump back to it.",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "happy-dom": "^20.14.5",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5",
+    "vitest": "^5.0.0",
+    "web-ext": "^10.5.0",
+    "wxt": "^0.21.3"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
+  }
+}

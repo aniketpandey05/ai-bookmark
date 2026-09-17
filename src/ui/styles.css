@@ -1,0 +1,400 @@
+.cm-root {
+  --cm-bg: #ffffff;
+  --cm-fg: #1f2328;
+  --cm-muted: #6b7280;
+  --cm-border: rgba(0, 0, 0, 0.12);
+  --cm-hover: rgba(0, 0, 0, 0.05);
+  --cm-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  --cm-accent: #f97316;
+  --cm-warning: #b45309;
+  --cm-danger: #dc2626;
+  font: 13px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--cm-fg);
+}
+
+.cm-root.cm-dark {
+  --cm-bg: #2a2a2e;
+  --cm-fg: #ececf1;
+  --cm-muted: #a1a1aa;
+  --cm-border: rgba(255, 255, 255, 0.14);
+  --cm-hover: rgba(255, 255, 255, 0.07);
+  --cm-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --cm-warning: #fbbf24;
+  --cm-danger: #f87171;
+}
+
+/* Zero-specificity reset so component classes below always win. */
+:where(.cm-root button) {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cm-root button:focus-visible {
+  outline: 2px solid var(--cm-accent);
+  outline-offset: 2px;
+}
+
+.cm-toolbar,
+.cm-tab,
+.cm-panel,
+.cm-card,
+.cm-notice {
+  position: fixed;
+  z-index: 2147483600;
+  background: var(--cm-bg);
+  border: 1px solid var(--cm-border);
+  box-shadow: var(--cm-shadow);
+}
+
+/* Selection toolbar */
+
+.cm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+}
+
+.cm-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--cm-border);
+  transition: transform 0.1s;
+}
+
+.cm-dot:hover {
+  transform: scale(1.15);
+}
+
+.cm-dot-active {
+  box-shadow: 0 0 0 2px var(--cm-bg), 0 0 0 4px var(--cm-accent);
+}
+
+.cm-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: var(--cm-border);
+}
+
+.cm-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--cm-muted);
+}
+
+.cm-icon-button:hover {
+  background: var(--cm-hover);
+  color: var(--cm-fg);
+}
+
+.cm-toolbar-note {
+  padding: 0 6px;
+  color: var(--cm-muted);
+  white-space: nowrap;
+}
+
+/* Note card */
+
+.cm-card {
+  width: 300px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.cm-card-docked {
+  top: 72px;
+  right: 324px;
+}
+
+.cm-card-header,
+.cm-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cm-card-colors {
+  display: flex;
+  gap: 8px;
+  padding-left: 2px;
+}
+
+.cm-card-quote {
+  margin: 0;
+  color: var(--cm-muted);
+  font-style: italic;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.cm-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 76px;
+  padding: 8px;
+  resize: vertical;
+  font: inherit;
+  color: var(--cm-fg);
+  background: transparent;
+  border: 1px solid var(--cm-border);
+  border-radius: 8px;
+}
+
+.cm-textarea:focus {
+  outline: 2px solid var(--cm-accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.cm-hint {
+  font-size: 11px;
+  color: var(--cm-muted);
+}
+
+.cm-text-button {
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--cm-muted);
+}
+
+.cm-text-button:hover {
+  background: var(--cm-hover);
+}
+
+.cm-danger:hover {
+  color: var(--cm-danger);
+}
+
+.cm-primary-button {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  color: var(--cm-bg);
+  background: var(--cm-fg);
+}
+
+/* Side tab and panel */
+
+.cm-tab {
+  right: 0;
+  top: 40%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 8px 8px 10px;
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+}
+
+.cm-alert {
+  color: var(--cm-warning);
+  font-weight: 700;
+}
+
+.cm-panel {
+  right: 12px;
+  top: 72px;
+  width: 300px;
+  max-height: calc(100vh - 144px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.cm-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cm-border);
+  font-weight: 600;
+}
+
+.cm-close {
+  padding: 2px 6px;
+  color: var(--cm-muted);
+}
+
+.cm-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+}
+
+.cm-list li {
+  display: flex;
+  align-items: flex-start;
+  border-radius: 8px;
+}
+
+.cm-list li:hover {
+  background: var(--cm-hover);
+}
+
+.cm-list-dragging {
+  user-select: none;
+}
+
+.cm-list-dragging,
+.cm-list-dragging * {
+  cursor: grabbing;
+}
+
+/* Entries slide out of the way only while dragging, so the drop itself doesn't animate twice. */
+.cm-list-dragging li {
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+.cm-list li.cm-dragging {
+  z-index: 1;
+  background: var(--cm-bg);
+  box-shadow: var(--cm-shadow);
+  transition: none;
+}
+
+.cm-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  text-align: left;
+}
+
+.cm-number {
+  flex: none;
+  box-sizing: border-box;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--cm-fg);
+}
+
+.cm-grip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 10px 0 10px 6px;
+  color: var(--cm-muted);
+  opacity: 0.45;
+  cursor: grab;
+  touch-action: none;
+}
+
+.cm-list li:hover .cm-grip,
+.cm-grip:focus-visible {
+  opacity: 1;
+}
+
+.cm-item-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cm-text,
+.cm-note {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.cm-note {
+  font-size: 12px;
+  color: var(--cm-muted);
+  white-space: pre-wrap;
+}
+
+.cm-note::before {
+  content: '✎ ';
+}
+
+.cm-missing .cm-text {
+  color: var(--cm-muted);
+}
+
+.cm-badge {
+  flex: none;
+  margin-left: auto;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--cm-muted);
+  border: 1px solid var(--cm-border);
+  border-radius: 4px;
+}
+
+.cm-row-action {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 8px 6px;
+  color: var(--cm-muted);
+  opacity: 0;
+}
+
+.cm-row-action:last-child {
+  padding-right: 10px;
+}
+
+.cm-row-action:hover {
+  color: var(--cm-fg);
+}
+
+.cm-list li:hover .cm-row-action,
+.cm-row-action:focus-visible {
+  opacity: 1;
+}
+
+.cm-empty,
+.cm-warning {
+  margin: 0;
+  padding: 12px;
+  color: var(--cm-muted);
+}
+
+.cm-warning {
+  color: var(--cm-warning);
+  border-top: 1px solid var(--cm-border);
+}
+
+.cm-notice {
+  left: 50%;
+  bottom: 96px;
+  max-width: 420px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transform: translateX(-50%);
+}
