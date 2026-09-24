@@ -1,7 +1,8 @@
-import type { ContentScriptContext } from '#imports';
+import { browser, type ContentScriptContext } from '#imports';
 import type { MessageRef, SiteAdapter } from '../adapters/types';
 import { debounce } from '../core/debounce';
 import { describeMessage, resolveMarks, type ResolvedMark } from '../core/locate';
+import type { PendingJump, RuntimeMessage } from '../core/messages';
 import { moveItem, nextOrder, sortByOrder } from '../core/order';
 import { HighlightPainter } from '../core/painter';
 import { describeQuote } from '../core/quote';
@@ -17,6 +18,10 @@ const BROKEN_AFTER_MS = 5000;
 const NOTICE_MS = 4000;
 const JUMP_FLASH_MS = 1600;
 const JUMP_SETTLE_MS = 700;
+// How long to keep looking for a highlight the library asked us to jump to.
+const JUMP_WAIT_MS = 15000;
+const JUMP_POLL_MS = 300;
+const MARK_HASH = '#chatmark=';
 // Approximate note card size, used to keep it on screen. Matches .cm-card in styles.css.
 const CARD_WIDTH = 300;
 const CARD_HEIGHT = 200;
@@ -106,8 +111,14 @@ export class ChatmarksController {
     // Toolbar and card positions are viewport rects, which go stale when anything scrolls.
     this.ctx.addEventListener(document, 'scroll', this.onViewportChange, { capture: true });
     this.ctx.addEventListener(window, 'resize', this.onViewportChange);
+    // The library asks an already-open tab to jump to a highlight.
+    browser.runtime.onMessage.addListener((message) => {
+      const request = message as RuntimeMessage;
+      if (request.type === 'jump-to-mark') void this.jumpWhenReady(request.markId, request.conversationId);
+    });
 
     await this.openConversation(new URL(location.href));
+    void this.followRequestedJump();
   }
 
   async highlight(color: HighlightColor, { withNote = false } = {}): Promise<void> {
@@ -221,6 +232,40 @@ export class ChatmarksController {
 
   closeCard(): void {
     if (this.state.card) this.setState({ card: null });
+  }
+
+  /** Jumps to a highlight opened from the library, or from a link ending in #chatmark=<id>. */
+  private async followRequestedJump(): Promise<void> {
+    const fromLink = location.hash.startsWith(MARK_HASH)
+      ? decodeURIComponent(location.hash.slice(MARK_HASH.length))
+      : null;
+    if (fromLink && this.state.conversationId) {
+      history.replaceState(null, '', location.pathname + location.search);
+      await this.jumpWhenReady(fromLink, this.state.conversationId);
+      return;
+    }
+    const pending = (await browser.runtime
+      .sendMessage({ type: 'take-pending-jump' } satisfies RuntimeMessage)
+      .catch(() => null)) as PendingJump | null;
+    if (pending) await this.jumpWhenReady(pending.markId, pending.conversationId);
+  }
+
+  /** Waits for the chat and the highlight to load, then jumps to it. */
+  private async jumpWhenReady(markId: string, conversationId: string): Promise<void> {
+    const deadline = Date.now() + JUMP_WAIT_MS;
+    while (Date.now() < deadline && !this.ctx.isInvalid) {
+      if (this.state.conversationId === conversationId) {
+        this.refresh();
+        if (this.resolved.has(markId)) {
+          this.jump(markId);
+          return;
+        }
+      }
+      await new Promise<void>((resolve) => this.ctx.setTimeout(() => resolve(), JUMP_POLL_MS));
+    }
+    if (!this.ctx.isInvalid) {
+      this.notify("Couldn't find that highlight in this chat. The message may have been edited or deleted.");
+    }
   }
 
   private async openConversation(url: URL): Promise<void> {
