@@ -38,9 +38,12 @@ export class HighlightPainter {
     this.style = doc.createElement('style');
     this.style.setAttribute('data-chatmarks-ui', '');
     this.style.textContent = [
-      ...colors.map((c) => `::highlight(${layerName(c)}) { background-color: ${HIGHLIGHT_COLORS[c]}; }`),
+      // Dark text on every highlight, so pale colors stay readable on dark pages and in code blocks.
+      ...colors.map(
+        (c) => `::highlight(${layerName(c)}) { background-color: ${HIGHLIGHT_COLORS[c]}; color: #16181d; }`,
+      ),
       `::highlight(${NOTED}) { text-decoration: underline dotted rgba(234, 88, 12, 0.9); text-decoration-thickness: 2px; }`,
-      `::highlight(${FLASH}) { background-color: rgba(249, 115, 22, 0.75); }`,
+      `::highlight(${FLASH}) { background-color: rgba(249, 115, 22, 0.85); color: #16181d; }`,
     ].join('\n');
     doc.head.append(this.style);
 

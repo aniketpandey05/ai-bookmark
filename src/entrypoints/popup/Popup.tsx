@@ -74,6 +74,7 @@ export function Popup() {
             checked={on}
             onChange={() => void (on ? disable(pattern) : enable(pattern))}
           />
+          <span class="pop-switch" aria-hidden="true" />
           <span>
             Highlight on <strong>{hostname}</strong>
           </span>

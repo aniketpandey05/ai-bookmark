@@ -269,8 +269,17 @@ function Panel({ state, controller }: Props & { state: ViewState }) {
   return (
     <section class="cm-panel" aria-label="Highlights in this chat">
       <header class="cm-panel-header">
-        <span>Highlights</span>
-        <button class="cm-close" onClick={close} aria-label="Close">
+        <span class="cm-panel-title">Highlights</span>
+        <span class="cm-panel-count">{state.items.length}</span>
+        <button
+          class="cm-icon-button"
+          onClick={() => controller.openLibrary()}
+          aria-label="Open all my highlights"
+          title="All my highlights"
+        >
+          <LibraryIcon />
+        </button>
+        <button class="cm-icon-button" onClick={close} aria-label="Close panel" title="Close">
           ✕
         </button>
       </header>
@@ -363,6 +372,14 @@ function PencilIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
+  );
+}
+
+function LibraryIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M4 5h6v14H4zM14 5h6v14h-6M14 9h6M14 15h6" />
     </svg>
   );
 }

@@ -226,6 +226,13 @@ export class ChatmarksController {
     this.openCard(id, true);
   }
 
+  /** Opens the library page listing highlights from every site. */
+  openLibrary(): void {
+    void browser.runtime
+      .sendMessage({ type: 'open-library' } satisfies RuntimeMessage)
+      .catch(() => undefined);
+  }
+
   openCard(markId: string, focusNote = false): void {
     this.setState({ card: { markId, position: this.cardPosition(markId), focusNote } });
   }
