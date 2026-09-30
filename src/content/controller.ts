@@ -7,6 +7,7 @@ import { moveItem, nextOrder, sortByOrder } from '../core/order';
 import { HighlightPainter } from '../core/painter';
 import { describeQuote } from '../core/quote';
 import { loadMarks, removeMark, saveOrder, upsertMark, watchMarks } from '../core/store';
+import { loadTheme, watchTheme, type Theme } from '../core/theme';
 import { buildTextIndex, spanFromRange, type TextIndex, type TextSpan } from '../core/textIndex';
 import type { HighlightColor, Mark } from '../core/types';
 
@@ -76,6 +77,7 @@ export class ChatmarksController {
   private pending: PendingSelection | null = null;
   private unwatch: (() => void) | undefined;
   private openedAt = 0;
+  private theme: Theme = 'system';
   // Streaming replies mutate the page constantly, so also refresh at least once a second.
   private readonly scheduleRefresh = debounce(() => this.refresh(), 200, 1000);
 
@@ -115,6 +117,12 @@ export class ChatmarksController {
     browser.runtime.onMessage.addListener((message) => {
       const request = message as RuntimeMessage;
       if (request.type === 'jump-to-mark') void this.jumpWhenReady(request.markId, request.conversationId);
+    });
+
+    this.theme = await loadTheme();
+    watchTheme((theme) => {
+      this.theme = theme;
+      this.refresh();
     });
 
     await this.openConversation(new URL(location.href));
@@ -321,7 +329,8 @@ export class ChatmarksController {
       items: sortByOrder(this.marks).map((mark) => ({ mark, found: this.resolved.has(mark.id) })),
       card: cardStillValid ? { ...card, position: this.cardPosition(card.markId) } : null,
       health: brokenLayout ? 'no-messages' : 'ok',
-      dark: isDarkPage(),
+      // "System" means matching the page we're sitting on, which is what looks right in context.
+      dark: this.theme === 'system' ? isDarkPage() : this.theme === 'dark',
     });
   }
 

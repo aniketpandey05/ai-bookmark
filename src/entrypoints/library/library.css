@@ -1,28 +1,47 @@
 :root {
-  --lib-bg: #f6f6f7;
+  --lib-bg: #f7f7f8;
   --lib-card: #ffffff;
   --lib-fg: #16181d;
-  --lib-muted: #6b7280;
-  --lib-border: rgba(16, 24, 40, 0.1);
-  --lib-hover: rgba(16, 24, 40, 0.04);
-  --lib-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
+  --lib-muted: #71717a;
+  --lib-border: rgba(16, 24, 40, 0.09);
+  --lib-line: rgba(16, 24, 40, 0.06);
+  --lib-hover: rgba(16, 24, 40, 0.035);
   --lib-accent: #ea580c;
+  --lib-ring: rgba(234, 88, 12, 0.18);
   --lib-danger: #dc2626;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
+/* Dark by system setting, unless the user asked for light. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --lib-bg: #1a1a1d;
-    --lib-card: #26262a;
+  :root:not([data-theme='light']) {
+    --lib-bg: #191a1c;
+    --lib-card: #232427;
     --lib-fg: #ececf1;
     --lib-muted: #a1a1aa;
-    --lib-border: rgba(255, 255, 255, 0.12);
-    --lib-hover: rgba(255, 255, 255, 0.06);
-    --lib-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.35);
+    --lib-border: rgba(255, 255, 255, 0.1);
+    --lib-line: rgba(255, 255, 255, 0.07);
+    --lib-hover: rgba(255, 255, 255, 0.05);
     --lib-accent: #fb923c;
+    --lib-ring: rgba(251, 146, 60, 0.22);
     --lib-danger: #f87171;
+    color-scheme: dark;
   }
+}
+
+/* Dark because the user chose it. */
+:root[data-theme='dark'] {
+  --lib-bg: #191a1c;
+  --lib-card: #232427;
+  --lib-fg: #ececf1;
+  --lib-muted: #a1a1aa;
+  --lib-border: rgba(255, 255, 255, 0.1);
+  --lib-line: rgba(255, 255, 255, 0.07);
+  --lib-hover: rgba(255, 255, 255, 0.05);
+  --lib-accent: #fb923c;
+  --lib-ring: rgba(251, 146, 60, 0.22);
+  --lib-danger: #f87171;
+  color-scheme: dark;
 }
 
 body {
@@ -30,30 +49,72 @@ body {
   background: var(--lib-bg);
   color: var(--lib-fg);
   font: 15px/1.55 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 .lib {
-  max-width: 780px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 40px 20px 80px;
+  padding: 36px 20px 80px;
 }
 
-.lib-header h1 {
-  margin: 0 0 18px;
-  font-size: 24px;
+.lib-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.lib-top h1 {
+  flex: 1;
+  margin: 0;
+  font-size: 21px;
+  font-weight: 650;
   letter-spacing: -0.01em;
+}
+
+.lib-theme {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--lib-card);
+  border: 1px solid var(--lib-border);
+  border-radius: 999px;
+}
+
+.lib-theme-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  color: var(--lib-muted);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.lib-theme-button:hover {
+  color: var(--lib-fg);
+}
+
+.lib-theme-on {
+  color: var(--lib-fg);
+  background: var(--lib-hover);
 }
 
 .lib-search {
   box-sizing: border-box;
   width: 100%;
-  padding: 11px 15px;
+  padding: 10px 14px;
   font: inherit;
   color: inherit;
   background: var(--lib-card);
   border: 1px solid var(--lib-border);
-  border-radius: 12px;
-  box-shadow: var(--lib-shadow);
+  border-radius: 11px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .lib-search::placeholder {
@@ -61,8 +122,9 @@ body {
 }
 
 .lib-search:focus {
-  outline: 2px solid var(--lib-accent);
-  outline-offset: -1px;
+  outline: none;
+  border-color: var(--lib-accent);
+  box-shadow: 0 0 0 3px var(--lib-ring);
 }
 
 .lib-count,
@@ -79,7 +141,7 @@ body {
 }
 
 .lib-chip {
-  padding: 5px 12px;
+  padding: 4px 11px;
   font: inherit;
   font-size: 13px;
   color: var(--lib-muted);
@@ -104,7 +166,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 14px 2px 26px;
+  margin: 14px 2px 8px;
 }
 
 .lib-count {
@@ -113,54 +175,56 @@ body {
 }
 
 .lib-tool {
-  padding: 6px 12px;
+  padding: 5px 11px;
   font: inherit;
   font-size: 13px;
-  color: inherit;
-  background: var(--lib-card);
+  color: var(--lib-muted);
+  background: none;
   border: 1px solid var(--lib-border);
   border-radius: 9px;
   cursor: pointer;
-  transition: border-color 0.12s ease, opacity 0.12s ease;
+  transition: color 0.12s ease, border-color 0.12s ease;
 }
 
 .lib-tool:hover:not(:disabled) {
+  color: var(--lib-fg);
   border-color: var(--lib-fg);
 }
 
 .lib-tool:disabled {
-  color: var(--lib-muted);
+  opacity: 0.55;
   cursor: default;
-  opacity: 0.7;
 }
 
 .lib-message {
-  margin: -18px 2px 22px;
+  margin: 10px 2px 0;
   font-size: 13px;
 }
 
 .lib-empty {
-  margin: 48px 0;
+  margin: 56px 0;
   text-align: center;
+}
+
+.lib-group {
+  margin-top: 26px;
 }
 
 .lib-group h2 {
   display: flex;
   align-items: baseline;
   gap: 9px;
-  margin: 30px 4px 9px;
+  margin: 0 4px 8px;
   font-size: 14px;
   font-weight: 600;
 }
 
 .lib-site {
   flex: none;
-  padding: 2px 9px;
+  padding: 1px 8px;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 500;
   color: var(--lib-muted);
-  background: var(--lib-card);
   border: 1px solid var(--lib-border);
   border-radius: 999px;
 }
@@ -182,19 +246,21 @@ body {
 .lib-group ul {
   list-style: none;
   margin: 0;
-  padding: 6px;
+  padding: 0;
   background: var(--lib-card);
   border: 1px solid var(--lib-border);
-  border-radius: 14px;
-  box-shadow: var(--lib-shadow);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .lib-group li {
   display: flex;
   align-items: flex-start;
-  gap: 2px;
-  border-radius: 10px;
   transition: background 0.12s ease;
+}
+
+.lib-group li + li {
+  border-top: 1px solid var(--lib-line);
 }
 
 .lib-group li:hover {
@@ -216,21 +282,21 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 11px;
-  padding: 11px 10px;
+  padding: 11px 6px 11px 13px;
   text-align: left;
 }
 
 .lib-number {
   flex: none;
   box-sizing: border-box;
-  min-width: 22px;
-  height: 20px;
+  min-width: 21px;
+  height: 19px;
   padding: 0 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  font-size: 12px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: #16181d;
@@ -264,7 +330,7 @@ body {
 
 .lib-action {
   flex: none;
-  padding: 11px 9px;
+  padding: 12px 9px;
   font-size: 13px;
   color: var(--lib-muted);
   opacity: 0;
@@ -284,7 +350,8 @@ body {
   color: var(--lib-danger);
 }
 
-button:focus-visible {
+button:focus-visible,
+input:focus-visible {
   outline: 2px solid var(--lib-accent);
   outline-offset: 2px;
 }

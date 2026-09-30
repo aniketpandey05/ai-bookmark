@@ -9,16 +9,30 @@
   color-scheme: light dark;
 }
 
+/* Dark by system setting, unless the user asked for light. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --pop-bg: #26262a;
-    --pop-raised: #303036;
+  :root:not([data-theme='light']) {
+    --pop-bg: #232427;
+    --pop-raised: #2c2d31;
     --pop-fg: #ececf1;
     --pop-muted: #a1a1aa;
-    --pop-border: rgba(255, 255, 255, 0.12);
-    --pop-hover: rgba(255, 255, 255, 0.08);
+    --pop-border: rgba(255, 255, 255, 0.11);
+    --pop-hover: rgba(255, 255, 255, 0.06);
     --pop-accent: #fb923c;
+    color-scheme: dark;
   }
+}
+
+/* Dark because the user chose it. */
+:root[data-theme='dark'] {
+  --pop-bg: #232427;
+  --pop-raised: #2c2d31;
+  --pop-fg: #ececf1;
+  --pop-muted: #a1a1aa;
+  --pop-border: rgba(255, 255, 255, 0.11);
+  --pop-hover: rgba(255, 255, 255, 0.06);
+  --pop-accent: #fb923c;
+  color-scheme: dark;
 }
 
 body {

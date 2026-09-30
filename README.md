@@ -20,6 +20,7 @@ Highlight anything you read — AI chats or ordinary web pages — add a note, a
 - Clicking a highlight opens that page and scrolls straight to it, re-using the tab if it's already open.
 - Every highlight has a copyable link that lands on the exact spot.
 - Export a backup file of everything and import it on another computer.
+- Light, dark or match-your-system, chosen in the library and used everywhere, including the panel inside chats.
 
 **When pages change**
 - Highlights are found again by their text and its surroundings, so they survive re-renders, edited messages and changed message ids.
@@ -31,6 +32,10 @@ Highlight anything you read — AI chats or ordinary web pages — add a note, a
 | Any web page, with a note | The library |
 |---|---|
 | ![Highlighting a blog post](docs/screenshots/web-page.jpg) | ![All highlights in one searchable list](docs/screenshots/library.jpg) |
+
+The same library in light mode:
+
+![The library in light mode](docs/screenshots/library-light.jpg)
 
 *Screenshots use a sample conversation and a sample article.*
 
