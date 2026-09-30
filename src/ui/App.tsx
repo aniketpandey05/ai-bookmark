@@ -4,8 +4,9 @@ import { HIGHLIGHT_COLORS } from '../core/painter';
 import type { HighlightColor, Mark } from '../core/types';
 
 const COLORS = Object.keys(HIGHLIGHT_COLORS) as HighlightColor[];
-// Space needed above a selection to show the toolbar there instead of below it.
-const TOOLBAR_OFFSET = 44;
+// ChatGPT shows its own "Ask ChatGPT" bar above a selection, so ours sits below it by default.
+const TOOLBAR_HEIGHT = 34;
+const TOOLBAR_GAP = 10;
 const MAX_NOTE_LENGTH = 1000;
 // Dragging an entry this close to the list's top or bottom edge scrolls the list by this much.
 const DRAG_SCROLL_EDGE = 28;
@@ -48,8 +49,10 @@ function SelectionToolbar({
   selection,
   controller,
 }: Props & { selection: NonNullable<ViewState['selection']> }) {
-  const top =
-    selection.top > TOOLBAR_OFFSET + 16 ? selection.top - TOOLBAR_OFFSET : selection.bottom + 10;
+  const fitsBelow = innerHeight - selection.bottom > TOOLBAR_HEIGHT + TOOLBAR_GAP * 2;
+  const top = fitsBelow
+    ? selection.bottom + TOOLBAR_GAP
+    : Math.max(TOOLBAR_GAP, selection.top - TOOLBAR_HEIGHT - TOOLBAR_GAP);
   return (
     <div
       class="cm-toolbar"
@@ -197,7 +200,7 @@ function Panel({ state, controller }: Props & { state: ViewState }) {
         class="cm-tab"
         onClick={() => setOpen(true)}
         aria-label={`Show highlights (${state.items.length})`}
-        title="Chatmarks"
+        title="AI Bookmark"
       >
         <BookmarkIcon />
         <span>{state.items.length}</span>

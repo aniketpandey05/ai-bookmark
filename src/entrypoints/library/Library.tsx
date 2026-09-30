@@ -1,15 +1,18 @@
 import { browser } from '#imports';
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { createBackup, readBackup } from '../../core/backup';
 import type { RuntimeMessage } from '../../core/messages';
 import { sortByOrder } from '../../core/order';
 import { HIGHLIGHT_COLORS } from '../../core/painter';
 import { searchMarks } from '../../core/search';
-import { loadAllMarks, removeMark, watchAllMarks } from '../../core/store';
+import { siteLabel } from '../../core/sites';
+import { importMarks, loadAllMarks, removeMark, watchAllMarks } from '../../core/store';
 import type { Mark } from '../../core/types';
 
 interface ChatGroup {
-  conversationId: string;
+  key: string;
   title: string;
+  site: string;
   marks: Mark[];
   newest: number;
 }
@@ -17,7 +20,10 @@ interface ChatGroup {
 export function Library() {
   const [marks, setMarks] = useState<Mark[] | null>(null);
   const [query, setQuery] = useState('');
+  const [site, setSite] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const reload = () => void loadAllMarks().then(setMarks);
@@ -25,8 +31,10 @@ export function Library() {
     return watchAllMarks(reload);
   }, []);
 
-  const groups = useMemo(() => groupByChat(searchMarks(marks ?? [], query)), [marks, query]);
-  const total = marks?.length ?? 0;
+  const all = marks ?? [];
+  const sites = countBySite(all);
+  const groups = groupByChat(searchMarks(site ? all.filter((m) => siteLabel(m) === site) : all, query));
+  const total = all.length;
   const shown = groups.reduce((sum, group) => sum + group.marks.length, 0);
 
   const open = (mark: Mark) => {
@@ -39,6 +47,32 @@ export function Library() {
     setTimeout(() => setCopiedId((id) => (id === mark.id ? null : id)), 1500);
   };
 
+  const exportBackup = () => {
+    const file = new Blob([createBackup(all)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(file);
+    link.download = `ai-bookmark-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    setMessage(`Saved a backup of ${total} highlight${total === 1 ? '' : 's'}.`);
+  };
+
+  const importBackup = async (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // so the same file can be picked again
+    if (!file) return;
+    try {
+      const { added, updated } = await importMarks(readBackup(await file.text()));
+      const parts = [];
+      if (added) parts.push(`added ${added} highlight${added === 1 ? '' : 's'}`);
+      if (updated) parts.push(`updated ${updated}`);
+      setMessage(parts.length ? `Imported: ${parts.join(', ')}.` : 'Everything in that file was already here.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'That file could not be imported.');
+    }
+  };
+
   return (
     <main class="lib">
       <header class="lib-header">
@@ -47,35 +81,76 @@ export function Library() {
           class="lib-search"
           type="search"
           value={query}
-          placeholder="Search highlights, notes and chat names…"
+          placeholder="Search highlights, notes, chat names and sites…"
           aria-label="Search highlights"
           autofocus
           onInput={(event) => setQuery(event.currentTarget.value)}
         />
-        <p class="lib-count">
-          {marks === null ? 'Loading…' : query ? `${shown} of ${total} highlights` : `${total} highlights`}
-        </p>
+        {sites.length > 1 && (
+          <div class="lib-filters" role="group" aria-label="Filter by site">
+            <button class={site === null ? 'lib-chip lib-chip-on' : 'lib-chip'} onClick={() => setSite(null)}>
+              All {total}
+            </button>
+            {sites.map(([label, count]) => (
+              <button
+                key={label}
+                class={site === label ? 'lib-chip lib-chip-on' : 'lib-chip'}
+                onClick={() => setSite(label)}
+              >
+                {label} {count}
+              </button>
+            ))}
+          </div>
+        )}
+        <div class="lib-tools">
+          <p class="lib-count">
+            {marks === null
+              ? 'Loading…'
+              : query || site
+                ? `${shown} of ${total} highlights`
+                : `${total} highlights`}
+          </p>
+          <button class="lib-tool" onClick={exportBackup} disabled={total === 0}>
+            Export backup
+          </button>
+          <button class="lib-tool" onClick={() => fileInput.current?.click()}>
+            Import backup
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(event) => void importBackup(event)}
+          />
+        </div>
+        {message && (
+          <p class="lib-message" role="status">
+            {message}
+          </p>
+        )}
       </header>
 
       {marks !== null && total === 0 && (
         <p class="lib-empty">
-          Nothing saved yet. Select text in a ChatGPT message and pick a color to highlight it.
+          Nothing saved yet. Select text in a message on ChatGPT, Claude or Gemini and pick a color.
         </p>
       )}
       {marks !== null && total > 0 && shown === 0 && (
-        <p class="lib-empty">No highlights match “{query}”.</p>
+        <p class="lib-empty">No highlights match what you're looking for.</p>
       )}
 
       {groups.map((group) => (
-        <section class="lib-group" key={group.conversationId}>
+        <section class="lib-group" key={group.key}>
           <h2>
-            {group.title}
+            <span class="lib-site">{group.site}</span>
+            <span class="lib-title">{group.title}</span>
             <span class="lib-when">{formatWhen(group.newest)}</span>
           </h2>
           <ul>
             {group.marks.map((mark, index) => (
               <li key={mark.id}>
-                <button class="lib-item" onClick={() => open(mark)} title="Open this chat at the highlight">
+                <button class="lib-item" onClick={() => open(mark)} title="Open this page at the highlight">
                   <span class="lib-number" style={{ background: HIGHLIGHT_COLORS[mark.color] }}>
                     {index + 1}
                   </span>
@@ -103,11 +178,20 @@ export function Library() {
   );
 }
 
-/** A link that opens the chat and jumps to the highlight; without the extension it just opens the chat. */
+/** A link that opens the page and jumps to the highlight; without the extension it just opens the page. */
 function linkTo(mark: Mark): string {
   const url = new URL(mark.url);
-  url.hash = `chatmark=${mark.id}`;
+  url.hash = `bookmark=${mark.id}`;
   return url.toString();
+}
+
+function countBySite(marks: Mark[]): Array<[string, number]> {
+  const counts = new Map<string, number>();
+  for (const mark of marks) {
+    const label = siteLabel(mark);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 }
 
 function groupByChat(marks: Mark[]): ChatGroup[] {
@@ -120,8 +204,9 @@ function groupByChat(marks: Mark[]): ChatGroup[] {
       group.newest = Math.max(group.newest, mark.createdAt);
     } else {
       groups.set(key, {
-        conversationId: key,
-        title: mark.conversationTitle || 'Untitled chat',
+        key,
+        title: mark.conversationTitle || 'Untitled',
+        site: siteLabel(mark),
         marks: [mark],
         newest: mark.createdAt,
       });

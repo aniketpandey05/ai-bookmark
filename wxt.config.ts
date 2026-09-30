@@ -5,12 +5,15 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   srcDir: 'src',
   manifest: {
-    name: 'Chatmarks',
-    description: 'Highlight and bookmark anything in your AI chats, then jump back to it.',
-    permissions: ['storage', 'unlimitedStorage'],
-    // Needed to find an already-open chat tab when jumping to a highlight from the library.
-    host_permissions: ['https://chatgpt.com/*'],
-    action: { default_title: 'Chatmarks — your highlights' },
+    name: 'AI Bookmark',
+    description: 'Highlight, note and bookmark anything you read, then jump back to it.',
+    // "activeTab" lets the popup see which page you're on when you click the icon, and nothing more.
+    // "scripting" lets the extension start highlighting on a site right after you allow it.
+    permissions: ['storage', 'unlimitedStorage', 'scripting', 'activeTab'],
+    // The chat sites work out of the box; any other site is allowed one at a time from the popup.
+    host_permissions: ['https://chatgpt.com/*', 'https://claude.ai/*', 'https://gemini.google.com/*'],
+    optional_host_permissions: ['*://*/*'],
+    action: { default_title: 'AI Bookmark' },
   },
   // Hot refresh doesn't work inside content scripts, so leave it off.
   vite: () => ({ plugins: [preact({ prefreshEnabled: false })] }),

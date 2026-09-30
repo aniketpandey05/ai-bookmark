@@ -57,27 +57,103 @@ body {
 }
 
 .lib-count,
-.lib-empty {
+.lib-empty,
+.lib-message {
   color: var(--lib-muted);
 }
 
+.lib-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 2px 24px;
+}
+
 .lib-count {
-  margin: 8px 2px 24px;
+  margin: 0 auto 0 0;
   font-size: 13px;
+}
+
+.lib-tool {
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  background: var(--lib-card);
+  border: 1px solid var(--lib-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.lib-tool:hover:not(:disabled) {
+  border-color: var(--lib-fg);
+}
+
+.lib-tool:disabled {
+  color: var(--lib-muted);
+  cursor: default;
+}
+
+.lib-message {
+  margin: -16px 2px 20px;
+  font-size: 13px;
+}
+
+.lib-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.lib-chip {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--lib-muted);
+  background: var(--lib-card);
+  border: 1px solid var(--lib-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.lib-chip:hover {
+  color: var(--lib-fg);
+}
+
+.lib-chip-on {
+  color: var(--lib-fg);
+  border-color: var(--lib-fg);
 }
 
 .lib-group h2 {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   margin: 28px 2px 8px;
   font-size: 14px;
   font-weight: 600;
 }
 
+.lib-site {
+  flex: none;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lib-muted);
+  border: 1px solid var(--lib-border);
+  border-radius: 999px;
+}
+
+.lib-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .lib-when {
   flex: none;
+  margin-left: auto;
   font-size: 12px;
   font-weight: 400;
   color: var(--lib-muted);

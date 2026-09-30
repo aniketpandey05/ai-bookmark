@@ -1,7 +1,8 @@
+import { siteLabel } from './sites';
 import type { Mark } from './types';
 
-// A word found in the highlight itself counts for more than one found in the chat's title.
-const FIELD_WEIGHTS = [3, 2, 1];
+// A word found in the highlight itself counts for more than one found in the chat's name or site.
+const FIELD_WEIGHTS = [3, 2, 1, 1];
 
 /** Finds highlights containing every word of the query, best matches first. */
 export function searchMarks(marks: readonly Mark[], query: string): Mark[] {
@@ -10,7 +11,9 @@ export function searchMarks(marks: readonly Mark[], query: string): Mark[] {
 
   const hits: Array<{ mark: Mark; score: number }> = [];
   for (const mark of marks) {
-    const fields = [mark.snapshot, mark.note ?? '', mark.conversationTitle].map((f) => f.toLowerCase());
+    const fields = [mark.snapshot, mark.note ?? '', mark.conversationTitle, siteLabel(mark)].map(
+      (field) => (field ?? '').toLowerCase(),
+    );
     let score = 0;
     for (const word of words) {
       const best = fields.reduce(

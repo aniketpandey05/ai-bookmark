@@ -44,7 +44,8 @@
 .cm-card,
 .cm-notice {
   position: fixed;
-  z-index: 2147483600;
+  /* Above the chat site's own popups, which can sit very high themselves. */
+  z-index: 2147483647;
   background: var(--cm-bg);
   border: 1px solid var(--cm-border);
   box-shadow: var(--cm-shadow);

@@ -10,7 +10,7 @@ const marksKey = (site: SiteId, conversationId: string) =>
 // Every write reads, changes and rewrites a whole array, so writes run one at a time;
 // otherwise a quick color change right after creating a highlight could be lost.
 let writeQueue: Promise<unknown> = Promise.resolve();
-function serialized(write: () => Promise<void>): Promise<void> {
+function serialized<T>(write: () => Promise<T>): Promise<T> {
   const result = writeQueue.then(write, write);
   writeQueue = result.catch(() => undefined);
   return result;
@@ -57,6 +57,36 @@ export function saveOrder(site: SiteId, conversationId: string, orderedIds: stri
       marksKey(site, conversationId),
       marks.map((m) => ({ ...m, order: position.get(m.id) ?? m.order })),
     );
+  });
+}
+
+/** Adds highlights from a backup file, keeping whichever copy was changed last. */
+export function importMarks(incoming: readonly Mark[]): Promise<{ added: number; updated: number }> {
+  return serialized(async () => {
+    const byChat = new Map<string, Mark[]>();
+    for (const mark of incoming) {
+      const key = `${mark.site}\u0000${mark.conversationId}`;
+      byChat.set(key, [...(byChat.get(key) ?? []), mark]);
+    }
+
+    let added = 0;
+    let updated = 0;
+    for (const [key, marks] of byChat) {
+      const [site, conversationId] = key.split('\u0000') as [SiteId, string];
+      const merged = new Map((await loadMarks(site, conversationId)).map((m) => [m.id, m]));
+      for (const mark of marks) {
+        const current = merged.get(mark.id);
+        if (!current) {
+          merged.set(mark.id, mark);
+          added++;
+        } else if ((mark.updatedAt ?? 0) > (current.updatedAt ?? 0)) {
+          merged.set(mark.id, mark);
+          updated++;
+        }
+      }
+      await storage.setItem(marksKey(site, conversationId), [...merged.values()]);
+    }
+    return { added, updated };
   });
 }
 

@@ -21,7 +21,7 @@ const JUMP_SETTLE_MS = 700;
 // How long to keep looking for a highlight the library asked us to jump to.
 const JUMP_WAIT_MS = 15000;
 const JUMP_POLL_MS = 300;
-const MARK_HASH = '#chatmark=';
+const MARK_HASH = '#bookmark=';
 // Approximate note card size, used to keep it on screen. Matches .cm-card in styles.css.
 const CARD_WIDTH = 300;
 const CARD_HEIGHT = 200;
@@ -234,7 +234,7 @@ export class ChatmarksController {
     if (this.state.card) this.setState({ card: null });
   }
 
-  /** Jumps to a highlight opened from the library, or from a link ending in #chatmark=<id>. */
+  /** Jumps to a highlight opened from the library, or from a link ending in #bookmark=<id>. */
   private async followRequestedJump(): Promise<void> {
     const fromLink = location.hash.startsWith(MARK_HASH)
       ? decodeURIComponent(location.hash.slice(MARK_HASH.length))

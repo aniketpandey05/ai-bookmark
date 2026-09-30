@@ -2,13 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { searchMarks } from '../src/core/search';
 import type { Mark } from '../src/core/types';
 
-const mark = (id: string, snapshot: string, note?: string, conversationTitle = 'Some chat') =>
-  ({ id, snapshot, note, conversationTitle, createdAt: Number(id) }) as Mark;
+const mark = (id: string, snapshot: string, extra: Partial<Mark> = {}) =>
+  ({
+    id,
+    snapshot,
+    conversationTitle: 'Some chat',
+    site: 'chatgpt',
+    url: 'https://chatgpt.com/c/x',
+    createdAt: Number(id),
+    ...extra,
+  }) as Mark;
 
 const marks = [
-  mark('1', 'docker compose up -d', 'starts the stack detached'),
-  mark('2', 'Named volumes are kept', undefined, 'Docker setup help'),
-  mark('3', 'O(n log n) is typical for good sorting'),
+  mark('1', 'docker compose up -d', { note: 'starts the stack detached' }),
+  mark('2', 'Named volumes are kept', { conversationTitle: 'Docker setup help' }),
+  mark('3', 'O(n log n) is typical for good sorting', {
+    site: 'claude',
+    url: 'https://claude.ai/chat/y',
+  }),
 ];
 
 describe('searchMarks', () => {
@@ -20,6 +31,11 @@ describe('searchMarks', () => {
     expect(searchMarks(marks, 'volumes').map((m) => m.id)).toEqual(['2']);
     expect(searchMarks(marks, 'detached').map((m) => m.id)).toEqual(['1']);
     expect(searchMarks(marks, 'setup help').map((m) => m.id)).toEqual(['2']);
+  });
+
+  it('matches the site a highlight came from', () => {
+    expect(searchMarks(marks, 'claude').map((m) => m.id)).toEqual(['3']);
+    expect(searchMarks(marks, 'chatgpt sorting')).toEqual([]);
   });
 
   it('puts matches in the highlight text above matches in the title', () => {

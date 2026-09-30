@@ -17,6 +17,9 @@ web-ext.config.ts
 # Local-only tooling
 .claude/
 harness/
+.agents/
+.mcp.json
+skills-lock.json
 
 # Editor directories and files
 .vscode/*

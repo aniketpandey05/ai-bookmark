@@ -7,9 +7,14 @@ export interface PendingJump {
 }
 
 export type RuntimeMessage =
-  /** Sent by the library: open the chat this highlight belongs to and jump to it. */
+  /** Sent by the library: open the page this highlight belongs to and jump to it. */
   | { type: 'open-mark'; mark: Mark }
   /** Sent by a content script when it loads: is there a highlight waiting to be jumped to? */
   | { type: 'take-pending-jump' }
-  /** Sent to a chat tab that is already open. */
-  | ({ type: 'jump-to-mark' } & PendingJump);
+  /** Sent to a tab that is already open. */
+  | ({ type: 'jump-to-mark' } & PendingJump)
+  /** Sent by the popup after the user allowed (or removed) a site. */
+  | { type: 'sites-changed'; startOnTabId?: number }
+  /** Sent by the popup: which sites has the user switched on? */
+  | { type: 'list-sites' }
+  | { type: 'open-library' };

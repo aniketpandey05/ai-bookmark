@@ -1,6 +1,7 @@
 import type { TextQuote } from './quote';
 
-export type SiteId = 'chatgpt' | 'claude' | 'gemini';
+/** 'web' is any ordinary page the user switched on from the toolbar. */
+export type SiteId = 'chatgpt' | 'claude' | 'gemini' | 'web';
 export type Role = 'user' | 'assistant';
 export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink';
 

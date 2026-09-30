@@ -1,21 +1,24 @@
-# Chatmarks
+# AI Bookmark
 
-Highlight anything in your AI chats, find it again in one click, and keep it even if the chat changes.
+Highlight anything you read — AI chats or ordinary web pages — find it again in one click, and keep it even if the page changes.
 
-> **Status:** early prototype. Works on ChatGPT; Claude and Gemini are next. Chatmarks is a working name.
+> **Status:** early prototype. Works on ChatGPT, Claude and Gemini.
 
 ## What works today
 
-- Select text in any ChatGPT message and pick a color to highlight it.
+- Select text in any message on ChatGPT, Claude or Gemini and pick a color to highlight it.
+- Highlight ordinary web pages too: click the toolbar button on any site and switch it on. Chrome asks you to allow that one site, and highlighting starts immediately, with no reload.
 - Highlights come back when you reopen the chat, even after the page re-renders or message ids change.
 - Add a note to any highlight: use the ✎ button when highlighting, click highlighted text later, or use the ✎ in the panel. Highlights with notes get a dotted underline.
 - A side panel lists the highlights and notes in the current chat, numbered in the order you made them. Drag the ⋮⋮ grip (or use the arrow keys on it) to reorder. Hover an entry to light up its highlight; click it to jump there.
 - `Alt+Shift+H` highlights the current selection in yellow; `Alt+Shift+N` highlights it and opens a note.
 - The toolbar button opens a library of every highlight from every chat, searchable by highlight text, note or chat name. Clicking one opens that chat and jumps straight to the highlight.
+- The library labels each chat with the site it came from, filters by site, and searches site names too.
 - Every highlight has a link you can copy. Opening it goes to that exact spot; without the extension it just opens the chat.
+- Export a backup of everything as a JSON file, and import it again on another computer.
 - Highlighting is blocked while a reply is still streaming.
 
-Everything is stored locally in your browser. Chatmarks makes no network requests.
+Everything is stored locally in your browser. AI Bookmark makes no network requests.
 
 ## Try it
 
@@ -26,7 +29,7 @@ npm install
 npm run build
 ```
 
-Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose `.output/chrome-mv3`. Open a chat on chatgpt.com and select some text.
+Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose `.output/chrome-mv3`. Open a chat on chatgpt.com, claude.ai or gemini.google.com and select some text.
 
 For development, `npm run dev` opens a separate Chrome profile with the extension loaded and rebuilds on save.
 
@@ -50,7 +53,8 @@ npm run compile   # type check
 | Searching saved highlights | `src/core/search.ts` |
 | Page logic: selection, navigation, jump, storage sync | `src/content/controller.ts` |
 | The library page: every chat's highlights, search, copy link | `src/entrypoints/library/` |
-| Opening or re-focusing a chat tab and telling it where to jump | `src/entrypoints/background.ts` |
+| Switching a site on, and opening or re-focusing a tab to jump to a highlight | `src/entrypoints/background.ts` |
+| The toolbar popup: switch this site on, list enabled sites, open the library | `src/entrypoints/popup/` |
 | Panel and toolbar (Preact, inside a shadow root) | `src/ui/` |
 
 ## Fixing a site that broke
