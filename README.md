@@ -13,6 +13,7 @@ Highlight anything you read — AI chats or ordinary web pages — add a note, a
 - Switch it on for **any other site** from the toolbar button: blogs, docs, Stack Overflow, GitHub.
 - Add a note to any highlight with the ✎ button, or by clicking highlighted text later. Highlights with notes get a dotted underline.
 - A side panel lists this page's highlights, numbered in the order you made them. Drag the ⋮⋮ grip to reorder, hover an entry to light up its highlight, click it to jump there.
+- In a long chat, jumping to a highlight in a part the site hasn't loaded yet scrolls up for you until it finds it.
 - Highlighting waits while a reply is still being written.
 
 **Afterwards**
@@ -58,6 +59,7 @@ Open a chat on chatgpt.com, claude.ai or gemini.google.com and select some text.
 |---|---|
 | `Alt+Shift+H` | Highlight the selected text in yellow |
 | `Alt+Shift+N` | Highlight it and open a note |
+| `Alt+Shift+↓` / `↑` | Go to the next or previous highlight, with a "3 of 7" marker |
 | `Ctrl+Enter` | Save the note you're writing |
 | `Esc` | Close the note without saving |
 | `↑` / `↓` on the ⋮⋮ grip | Move a highlight up or down the list |

@@ -22,6 +22,9 @@ const JUMP_SETTLE_MS = 700;
 // How long to keep looking for a highlight the library asked us to jump to.
 const JUMP_WAIT_MS = 15000;
 const JUMP_POLL_MS = 300;
+// Scrolling up to let a site load older messages: how many screens to try, and how long to wait each time.
+const LOAD_OLDER_STEPS = 12;
+const LOAD_OLDER_WAIT_MS = 400;
 const MARK_HASH = '#bookmark=';
 // Approximate note card size, used to keep it on screen. Matches .cm-card in styles.css.
 const CARD_WIDTH = 300;
@@ -78,6 +81,8 @@ export class ChatmarksController {
   private unwatch: (() => void) | undefined;
   private openedAt = 0;
   private theme: Theme = 'system';
+  /** Where "next highlight" continues from; -1 means nowhere yet. */
+  private cursor = -1;
   // Streaming replies mutate the page constantly, so also refresh at least once a second.
   private readonly scheduleRefresh = debounce(() => this.refresh(), 200, 1000);
 
@@ -202,10 +207,27 @@ export class ChatmarksController {
   }
 
   jump(id: string): void {
+    const index = this.state.items.findIndex((item) => item.mark.id === id);
+    if (index !== -1) this.cursor = index;
+    void this.jumpToMark(id);
+  }
+
+  /** Moves to the next (+1) or previous (-1) highlight in the user's order. */
+  step(delta: number): void {
+    const { items } = this.state;
+    if (items.length === 0) return;
+    const from = this.cursor === -1 ? (delta > 0 ? -1 : items.length) : this.cursor;
+    const next = clamp(from + delta, 0, items.length - 1);
+    this.cursor = next;
+    this.notify(`${next + 1} of ${items.length}`);
+    void this.jumpToMark(items[next]!.mark.id);
+  }
+
+  private async jumpToMark(id: string): Promise<void> {
     this.refresh();
-    const hit = this.resolved.get(id);
+    const hit = this.resolved.get(id) ?? (await this.searchOlderMessages(id));
     if (!hit) {
-      this.notify("Couldn't find this in the page. If it's in an older part of the chat, scroll up and try again.");
+      this.notify("Couldn't find this one on the page. The message may have been edited or deleted.");
       return;
     }
     const target = hit.range.startContainer.parentElement ?? hit.message.el;
@@ -218,6 +240,49 @@ export class ChatmarksController {
         if (!isInViewport(target)) target.scrollIntoView({ block: 'center' });
       }, JUMP_SETTLE_MS);
     }
+  }
+
+  /**
+   * Long chats only keep recent messages on the page. Scroll up a screen at a time,
+   * giving the site a chance to load older ones, until the highlight turns up.
+   */
+  private async searchOlderMessages(id: string): Promise<ResolvedMark | undefined> {
+    const scroller = this.findScroller();
+    if (!scroller) return undefined;
+
+    const startedAt = scroller.scrollTop;
+    this.notify('Looking further up the chat…');
+    for (let step = 0; step < LOAD_OLDER_STEPS && !this.ctx.isInvalid; step++) {
+      const messagesBefore = this.adapter.getMessages().length;
+      const topBefore = scroller.scrollTop;
+      scroller.scrollTop = Math.max(0, topBefore - scroller.clientHeight);
+      await delay(this.ctx, LOAD_OLDER_WAIT_MS);
+
+      this.refresh();
+      const hit = this.resolved.get(id);
+      if (hit) {
+        this.setState({ notice: null });
+        return hit;
+      }
+      // Nothing moved and nothing loaded: we're as far back as this chat goes.
+      if (this.adapter.getMessages().length === messagesBefore && scroller.scrollTop === topBefore) break;
+    }
+
+    scroller.scrollTop = startedAt;
+    return undefined;
+  }
+
+  /** The element the chat actually scrolls in, which is rarely the window. */
+  private findScroller(): HTMLElement | null {
+    const first = this.adapter.getMessages()[0]?.el;
+    for (let el = first?.parentElement ?? null; el; el = el.parentElement) {
+      const overflow = getComputedStyle(el).overflowY;
+      if ((overflow === 'auto' || overflow === 'scroll') && el.scrollHeight > el.clientHeight + 10) {
+        return el as HTMLElement;
+      }
+    }
+    const page = document.scrollingElement as HTMLElement | null;
+    return page && page.scrollHeight > page.clientHeight + 10 ? page : null;
   }
 
   /** Lights up a highlight in the chat while its panel entry is hovered; null turns it off. */
@@ -269,17 +334,12 @@ export class ChatmarksController {
   private async jumpWhenReady(markId: string, conversationId: string): Promise<void> {
     const deadline = Date.now() + JUMP_WAIT_MS;
     while (Date.now() < deadline && !this.ctx.isInvalid) {
-      if (this.state.conversationId === conversationId) {
-        this.refresh();
-        if (this.resolved.has(markId)) {
-          this.jump(markId);
-          return;
-        }
+      // Wait for the right chat and for its highlights to load, then let jumping do the rest.
+      if (this.state.conversationId === conversationId && this.marks.some((m) => m.id === markId)) {
+        this.jump(markId);
+        return;
       }
-      await new Promise<void>((resolve) => this.ctx.setTimeout(() => resolve(), JUMP_POLL_MS));
-    }
-    if (!this.ctx.isInvalid) {
-      this.notify("Couldn't find that highlight in this chat. The message may have been edited or deleted.");
+      await delay(this.ctx, JUMP_POLL_MS);
     }
   }
 
@@ -291,6 +351,7 @@ export class ChatmarksController {
     this.unwatch = undefined;
     this.marks = [];
     this.pending = null;
+    this.cursor = -1;
     this.openedAt = Date.now();
     this.painter.clearFlash();
     this.setState({ conversationId, items: [], selection: null, card: null, health: 'ok' });
@@ -414,6 +475,8 @@ export class ChatmarksController {
   private onKeyUp = (event: KeyboardEvent): void => {
     if (event.altKey && event.shiftKey && (event.code === 'KeyH' || event.code === 'KeyN')) {
       void this.highlight('yellow', { withNote: event.code === 'KeyN' });
+    } else if (event.altKey && event.shiftKey && (event.code === 'ArrowDown' || event.code === 'ArrowUp')) {
+      this.step(event.code === 'ArrowDown' ? 1 : -1);
     } else if (event.shiftKey || event.key.startsWith('Arrow')) {
       this.captureSelection();
     }
@@ -437,6 +500,10 @@ export class ChatmarksController {
     this.state = { ...this.state, ...patch };
     for (const listener of this.listeners) listener();
   }
+}
+
+function delay(ctx: ContentScriptContext, ms: number): Promise<void> {
+  return new Promise((resolve) => ctx.setTimeout(() => resolve(), ms));
 }
 
 function clamp(value: number, min: number, max: number): number {
