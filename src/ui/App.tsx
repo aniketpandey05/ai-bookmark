@@ -29,7 +29,16 @@ export function App({ controller }: Props) {
       {state.card && cardMark && (
         <NoteCard key={cardMark.id} card={state.card} mark={cardMark} controller={controller} />
       )}
+      <Minimap state={state} controller={controller} />
       {state.search && <SearchPalette search={state.search} controller={controller} />}
+      {state.undo && (
+        <div class="cm-undo" role="status">
+          <span class="cm-undo-text">Deleted “{state.undo.label}”</span>
+          <button class="cm-undo-button" onClick={() => controller.undoDelete()}>
+            Undo
+          </button>
+        </div>
+      )}
       {state.notice && (
         <div class="cm-notice" role="status">
           {state.notice}
@@ -399,6 +408,31 @@ function Panel({ state, controller }: Props & { state: ViewState }) {
         </p>
       )}
     </section>
+  );
+}
+
+/** Ticks beside the scrollbar showing where the highlights are on this page. */
+function Minimap({ state, controller }: Props & { state: ViewState }) {
+  if (state.ticks.length === 0) return null;
+  return (
+    <div class="cm-minimap" aria-label="Highlights on this page">
+      {state.viewport && (
+        <span
+          class="cm-minimap-view"
+          style={{ top: `${state.viewport.top * 100}%`, height: `${state.viewport.height * 100}%` }}
+        />
+      )}
+      {state.ticks.map((tick) => (
+        <button
+          key={tick.id}
+          class="cm-tick"
+          style={{ top: `${tick.at * 100}%`, background: HIGHLIGHT_COLORS[tick.color] }}
+          title={tick.label}
+          aria-label={`Go to highlight: ${tick.label}`}
+          onClick={() => controller.jump(tick.id)}
+        />
+      ))}
+    </div>
   );
 }
 

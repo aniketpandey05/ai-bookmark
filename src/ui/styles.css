@@ -585,6 +585,79 @@
   border-top: 1px solid var(--cm-border);
 }
 
+/* Ticks beside the scrollbar */
+
+.cm-minimap {
+  position: fixed;
+  right: 2px;
+  top: 12vh;
+  bottom: 12vh;
+  width: 12px;
+  z-index: 2147483646;
+}
+
+.cm-minimap-view {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  background: var(--cm-hover);
+  border-radius: 3px;
+}
+
+.cm-tick {
+  position: absolute;
+  left: 1px;
+  width: 10px;
+  height: 5px;
+  margin-top: -2px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--cm-border);
+  transition: transform 0.12s ease;
+}
+
+.cm-tick:hover {
+  transform: scaleX(1.6);
+}
+
+/* Undo after deleting */
+
+.cm-undo {
+  position: fixed;
+  z-index: 2147483647;
+  left: 50%;
+  bottom: 96px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px 9px 15px;
+  background: var(--cm-bg);
+  border: 1px solid var(--cm-border);
+  border-radius: 10px;
+  box-shadow: var(--cm-shadow);
+  transform: translateX(-50%);
+  animation: cm-appear 0.12s ease-out;
+}
+
+.cm-undo-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--cm-muted);
+}
+
+.cm-undo-button {
+  flex: none;
+  padding: 4px 10px;
+  font-weight: 600;
+  color: var(--cm-accent);
+  border-radius: 7px;
+}
+
+.cm-undo-button:hover {
+  background: var(--cm-hover);
+}
+
 .cm-notice {
   left: 50%;
   bottom: 96px;

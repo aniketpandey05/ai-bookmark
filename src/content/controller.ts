@@ -27,6 +27,7 @@ const JUMP_POLL_MS = 300;
 const LOAD_OLDER_STEPS = 12;
 const LOAD_OLDER_WAIT_MS = 400;
 const SEARCH_RESULTS = 8;
+const UNDO_MS = 7000;
 const MARK_HASH = '#bookmark=';
 // Approximate note card size, used to keep it on screen. Matches .cm-card in styles.css.
 const CARD_WIDTH = 300;
@@ -54,10 +55,24 @@ export interface NoteCardState {
   focusNote: boolean;
 }
 
+/** A highlight's place in the whole page, for the ticks beside the scrollbar. */
+export interface Tick {
+  id: string;
+  color: HighlightColor;
+  /** 0 at the top of the page, 1 at the bottom. */
+  at: number;
+  label: string;
+}
+
 export interface ViewState {
   conversationId: string | null;
   /** Highlights in the user's order. */
   items: PanelItem[];
+  ticks: Tick[];
+  /** Which slice of the page is on screen, as fractions, for the minimap. */
+  viewport: { top: number; height: number } | null;
+  /** A just-deleted highlight that can still be brought back. */
+  undo: { label: string } | null;
   /** Viewport position of the current text selection, when it can be highlighted. */
   selection: { top: number; bottom: number; left: number; streaming: boolean } | null;
   card: NoteCardState | null;
@@ -78,6 +93,9 @@ export class ChatmarksController {
   private state: ViewState = {
     conversationId: null,
     items: [],
+    ticks: [],
+    viewport: null,
+    undo: null,
     selection: null,
     card: null,
     search: null,
@@ -87,6 +105,10 @@ export class ChatmarksController {
   };
   /** Every highlight from every site, loaded when the search box opens. */
   private allMarks: Mark[] = [];
+  /** Kept for a few seconds after a delete, so it can be undone. */
+  private deleted: Mark | null = null;
+  /** The element the page scrolls in, found again on every refresh. */
+  private scroller: HTMLElement | null = null;
   private readonly listeners = new Set<() => void>();
   private readonly painter = new HighlightPainter();
   private marks: Mark[] = [];
@@ -212,12 +234,34 @@ export class ChatmarksController {
 
   async remove(id: string): Promise<void> {
     const conversationId = this.state.conversationId;
-    if (!conversationId) return;
+    const mark = this.marks.find((m) => m.id === id);
+    if (!conversationId || !mark) return;
     if (this.state.card?.markId === id) this.closeCard();
     this.painter.clearFlash();
+
+    this.deleted = mark;
     this.marks = this.marks.filter((m) => m.id !== id);
     this.refresh();
+    this.setState({ undo: { label: mark.label || mark.snapshot } });
+    this.ctx.setTimeout(() => {
+      if (this.deleted?.id === id) {
+        this.deleted = null;
+        this.setState({ undo: null });
+      }
+    }, UNDO_MS);
+
     await removeMark(this.adapter.site, conversationId, id);
+  }
+
+  /** Brings back the highlight deleted a moment ago. */
+  undoDelete(): void {
+    const mark = this.deleted;
+    if (!mark) return;
+    this.deleted = null;
+    this.marks = [...this.marks, mark];
+    this.setState({ undo: null });
+    this.refresh();
+    void upsertMark(mark);
   }
 
   jump(id: string): void {
@@ -455,12 +499,33 @@ export class ChatmarksController {
     const brokenLayout =
       !!conversationId && messages.length === 0 && Date.now() - this.openedAt > BROKEN_AFTER_MS;
     const cardStillValid = card && this.marks.some((m) => m.id === card.markId);
+    this.scroller = this.findScroller();
     this.setState({
       items: sortByOrder(this.marks).map((mark) => ({ mark, found: this.resolved.has(mark.id) })),
+      ticks: this.buildTicks(resolved),
+      viewport: viewportSlice(this.scroller),
       card: cardStillValid ? { ...card, position: this.cardPosition(card.markId) } : null,
       health: brokenLayout ? 'no-messages' : 'ok',
       // "System" means matching the page we're sitting on, which is what looks right in context.
       dark: this.theme === 'system' ? isDarkPage() : this.theme === 'dark',
+    });
+  }
+
+  /** Where each highlight sits in the whole page, as a fraction, for the ticks. */
+  private buildTicks(resolved: ResolvedMark[]): Tick[] {
+    const scroller = this.scroller;
+    if (!scroller) return [];
+    const scrollerTop = scroller === document.scrollingElement ? 0 : scroller.getBoundingClientRect().top;
+    const height = Math.max(scroller.scrollHeight, 1);
+
+    return resolved.map(({ mark, range }) => {
+      const offset = range.getBoundingClientRect().top - scrollerTop + scroller.scrollTop;
+      return {
+        id: mark.id,
+        color: mark.color,
+        at: clamp(offset / height, 0, 1),
+        label: mark.label || mark.snapshot,
+      };
     });
   }
 
@@ -553,11 +618,14 @@ export class ChatmarksController {
     }
   };
 
-  // Scroll events already arrive at most once per frame, so repositioning right away is cheap.
+  // Scroll events already arrive at most once per frame, so updating right away is cheap.
   private onViewportChange = (): void => {
     this.clearSelectionDraft();
     const card = this.state.card;
-    if (card?.position) this.setState({ card: { ...card, position: this.cardPosition(card.markId) } });
+    this.setState({
+      viewport: viewportSlice(this.scroller),
+      card: card?.position ? { ...card, position: this.cardPosition(card.markId) } : card,
+    });
   };
 
   private notify(notice: string): void {
@@ -571,6 +639,15 @@ export class ChatmarksController {
     this.state = { ...this.state, ...patch };
     for (const listener of this.listeners) listener();
   }
+}
+
+function viewportSlice(scroller: HTMLElement | null): ViewState['viewport'] {
+  if (!scroller) return null;
+  const height = Math.max(scroller.scrollHeight, 1);
+  return {
+    top: clamp(scroller.scrollTop / height, 0, 1),
+    height: clamp(scroller.clientHeight / height, 0.03, 1),
+  };
 }
 
 function delay(ctx: ContentScriptContext, ms: number): Promise<void> {

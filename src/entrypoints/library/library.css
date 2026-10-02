@@ -201,6 +201,22 @@ body {
   font-size: 13px;
 }
 
+.lib-undo {
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lib-accent);
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.lib-undo:hover {
+  background: var(--lib-hover);
+}
+
 .lib-empty {
   margin: 56px 0;
   text-align: center;

@@ -8,7 +8,7 @@ import { sortByOrder } from '../../core/order';
 import { HIGHLIGHT_COLORS } from '../../core/painter';
 import { searchMarks } from '../../core/search';
 import { siteLabel } from '../../core/sites';
-import { importMarks, loadAllMarks, removeMark, watchAllMarks } from '../../core/store';
+import { importMarks, loadAllMarks, removeMark, upsertMark, watchAllMarks } from '../../core/store';
 import { countTags, sameTag } from '../../core/tags';
 import { applyTheme, loadTheme, saveTheme, watchTheme, type Theme } from '../../core/theme';
 import type { Mark } from '../../core/types';
@@ -34,6 +34,7 @@ export function Library() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState<Mark | null>(null);
   const [theme, setTheme] = useState<Theme>('system');
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -79,6 +80,20 @@ export function Library() {
     await navigator.clipboard.writeText(linkTo(mark));
     setCopiedId(mark.id);
     setTimeout(() => setCopiedId((id) => (id === mark.id ? null : id)), 1500);
+  };
+
+  const deleteMark = async (mark: Mark) => {
+    setMessage(null);
+    setDeleted(mark);
+    setTimeout(() => setDeleted((current) => (current?.id === mark.id ? null : current)), 7000);
+    await removeMark(mark.site, mark.conversationId, mark.id);
+  };
+
+  const undoDelete = async () => {
+    const mark = deleted;
+    if (!mark) return;
+    setDeleted(null);
+    await upsertMark(mark);
   };
 
   const download = (contents: string, type: string, extension: string) => {
@@ -198,10 +213,20 @@ export function Library() {
             onChange={(event) => void importBackup(event)}
           />
         </div>
-        {message && (
+        {deleted ? (
           <p class="lib-message" role="status">
-            {message}
+            Deleted “{deleted.snapshot.slice(0, 48)}
+            {deleted.snapshot.length > 48 ? '…' : ''}”{' '}
+            <button class="lib-undo" onClick={() => void undoDelete()}>
+              Undo
+            </button>
           </p>
+        ) : (
+          message && (
+            <p class="lib-message" role="status">
+              {message}
+            </p>
+          )
         )}
       </header>
 
@@ -247,7 +272,7 @@ export function Library() {
                 </button>
                 <button
                   class="lib-action lib-danger"
-                  onClick={() => void removeMark(mark.site, mark.conversationId, mark.id)}
+                  onClick={() => void deleteMark(mark)}
                   title="Delete this highlight"
                 >
                   Delete

@@ -15,6 +15,8 @@ Highlight anything you read — AI chats or ordinary web pages — add a note, a
 - Tag a highlight in the same box. Tags pull related highlights together across chats and sites.
 - A side panel lists this page's highlights, numbered in the order you made them. Drag the ⋮⋮ grip to reorder, hover an entry to light up its highlight, click it to jump there.
 - In a long chat, jumping to a highlight in a part the site hasn't loaded yet scrolls up for you until it finds it.
+- Coloured ticks beside the scrollbar show where your highlights are on the page, with a box marking what's on screen. Click a tick to jump there.
+- Deleting a highlight leaves an **Undo** for a few seconds, in the page and in the library.
 - Highlighting waits while a reply is still being written.
 
 **Afterwards**
