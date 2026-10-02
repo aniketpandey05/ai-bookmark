@@ -6,7 +6,8 @@ import type { PendingJump, RuntimeMessage } from '../core/messages';
 import { moveItem, nextOrder, sortByOrder } from '../core/order';
 import { HighlightPainter } from '../core/painter';
 import { describeQuote } from '../core/quote';
-import { loadMarks, removeMark, saveOrder, upsertMark, watchMarks } from '../core/store';
+import { searchMarks } from '../core/search';
+import { loadAllMarks, loadMarks, removeMark, saveOrder, upsertMark, watchMarks } from '../core/store';
 import { loadTheme, watchTheme, type Theme } from '../core/theme';
 import { buildTextIndex, spanFromRange, type TextIndex, type TextSpan } from '../core/textIndex';
 import type { HighlightColor, Mark } from '../core/types';
@@ -25,6 +26,7 @@ const JUMP_POLL_MS = 300;
 // Scrolling up to let a site load older messages: how many screens to try, and how long to wait each time.
 const LOAD_OLDER_STEPS = 12;
 const LOAD_OLDER_WAIT_MS = 400;
+const SEARCH_RESULTS = 8;
 const MARK_HASH = '#bookmark=';
 // Approximate note card size, used to keep it on screen. Matches .cm-card in styles.css.
 const CARD_WIDTH = 300;
@@ -36,6 +38,13 @@ const INTERACTIVE = 'a, button, input, textarea, select, [contenteditable="true"
 export interface PanelItem {
   mark: Mark;
   found: boolean;
+}
+
+export interface SearchState {
+  query: string;
+  results: Mark[];
+  /** Which result the arrow keys are on. */
+  active: number;
 }
 
 export interface NoteCardState {
@@ -52,6 +61,8 @@ export interface ViewState {
   /** Viewport position of the current text selection, when it can be highlighted. */
   selection: { top: number; bottom: number; left: number; streaming: boolean } | null;
   card: NoteCardState | null;
+  /** The search box over every highlight from every site; null when closed. */
+  search: SearchState | null;
   health: 'ok' | 'no-messages';
   dark: boolean;
   notice: string | null;
@@ -69,10 +80,13 @@ export class ChatmarksController {
     items: [],
     selection: null,
     card: null,
+    search: null,
     health: 'ok',
     dark: false,
     notice: null,
   };
+  /** Every highlight from every site, loaded when the search box opens. */
+  private allMarks: Mark[] = [];
   private readonly listeners = new Set<() => void>();
   private readonly painter = new HighlightPainter();
   private marks: Mark[] = [];
@@ -299,6 +313,54 @@ export class ChatmarksController {
     this.openCard(id, true);
   }
 
+  /** Opens the search box over everything saved, from any site. */
+  async openSearch(): Promise<void> {
+    this.allMarks = await loadAllMarks();
+    const recent = [...this.allMarks].sort((a, b) => b.createdAt - a.createdAt);
+    this.setState({ search: { query: '', results: recent.slice(0, SEARCH_RESULTS), active: 0 } });
+  }
+
+  searchFor(query: string): void {
+    if (!this.state.search) return;
+    const matches = query.trim()
+      ? searchMarks(this.allMarks, query)
+      : [...this.allMarks].sort((a, b) => b.createdAt - a.createdAt);
+    this.setState({ search: { query, results: matches.slice(0, SEARCH_RESULTS), active: 0 } });
+  }
+
+  moveSearch(delta: number): void {
+    const search = this.state.search;
+    if (!search?.results.length) return;
+    this.setState({
+      search: { ...search, active: clamp(search.active + delta, 0, search.results.length - 1) },
+    });
+  }
+
+  moveSearchTo(active: number): void {
+    const search = this.state.search;
+    if (search && search.active !== active) this.setState({ search: { ...search, active } });
+  }
+
+  closeSearch(): void {
+    if (this.state.search) this.setState({ search: null });
+  }
+
+  /** Opens the chosen result: jump if it's on this page, otherwise hand it to the background. */
+  openSearchResult(mark?: Mark): void {
+    const search = this.state.search;
+    const target = mark ?? search?.results[search.active];
+    if (!target) return;
+    this.closeSearch();
+
+    if (target.site === this.adapter.site && target.conversationId === this.state.conversationId) {
+      this.jump(target.id);
+      return;
+    }
+    void browser.runtime
+      .sendMessage({ type: 'open-mark', mark: target } satisfies RuntimeMessage)
+      .catch(() => undefined);
+  }
+
   /** Opens the library page listing highlights from every site. */
   openLibrary(): void {
     void browser.runtime
@@ -354,7 +416,14 @@ export class ChatmarksController {
     this.cursor = -1;
     this.openedAt = Date.now();
     this.painter.clearFlash();
-    this.setState({ conversationId, items: [], selection: null, card: null, health: 'ok' });
+    this.setState({
+      conversationId,
+      items: [],
+      selection: null,
+      card: null,
+      search: null,
+      health: 'ok',
+    });
     if (!conversationId) {
       this.refresh();
       return;
@@ -475,6 +544,8 @@ export class ChatmarksController {
   private onKeyUp = (event: KeyboardEvent): void => {
     if (event.altKey && event.shiftKey && (event.code === 'KeyH' || event.code === 'KeyN')) {
       void this.highlight('yellow', { withNote: event.code === 'KeyN' });
+    } else if (event.altKey && event.shiftKey && event.code === 'KeyF') {
+      void this.openSearch();
     } else if (event.altKey && event.shiftKey && (event.code === 'ArrowDown' || event.code === 'ArrowUp')) {
       this.step(event.code === 'ArrowDown' ? 1 : -1);
     } else if (event.shiftKey || event.key.startsWith('Arrow')) {

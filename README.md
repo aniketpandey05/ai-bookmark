@@ -17,6 +17,7 @@ Highlight anything you read — AI chats or ordinary web pages — add a note, a
 - Highlighting waits while a reply is still being written.
 
 **Afterwards**
+- `Alt+Shift+F` opens a search box over everything you've saved, right on the page you're reading. Picking a result from another chat opens it there.
 - One library holds every highlight from every site, labelled with where it came from, filterable by site and searchable by text, note, chat name or site.
 - Clicking a highlight opens that page and scrolls straight to it, re-using the tab if it's already open.
 - Every highlight has a copyable link that lands on the exact spot.
@@ -60,6 +61,7 @@ Open a chat on chatgpt.com, claude.ai or gemini.google.com and select some text.
 | `Alt+Shift+H` | Highlight the selected text in yellow |
 | `Alt+Shift+N` | Highlight it and open a note |
 | `Alt+Shift+↓` / `↑` | Go to the next or previous highlight, with a "3 of 7" marker |
+| `Alt+Shift+F` | Search everything you've highlighted, without leaving the page |
 | `Ctrl+Enter` | Save the note you're writing |
 | `Esc` | Close the note without saving |
 | `↑` / `↓` on the ⋮⋮ grip | Move a highlight up or down the list |

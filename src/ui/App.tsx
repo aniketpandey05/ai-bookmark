@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { ChatmarksController, NoteCardState, ViewState } from '../content/controller';
+import type { ChatmarksController, NoteCardState, SearchState, ViewState } from '../content/controller';
 import { HIGHLIGHT_COLORS } from '../core/painter';
+import { siteLabel } from '../core/sites';
 import type { HighlightColor, Mark } from '../core/types';
 
 const COLORS = Object.keys(HIGHLIGHT_COLORS) as HighlightColor[];
@@ -27,6 +28,7 @@ export function App({ controller }: Props) {
       {state.card && cardMark && (
         <NoteCard key={cardMark.id} card={state.card} mark={cardMark} controller={controller} />
       )}
+      {state.search && <SearchPalette search={state.search} controller={controller} />}
       {state.notice && (
         <div class="cm-notice" role="status">
           {state.notice}
@@ -273,6 +275,14 @@ function Panel({ state, controller }: Props & { state: ViewState }) {
         <span class="cm-panel-count">{state.items.length}</span>
         <button
           class="cm-icon-button"
+          onClick={() => void controller.openSearch()}
+          aria-label="Search all my highlights"
+          title="Search everything (Alt+Shift+F)"
+        >
+          <SearchIcon />
+        </button>
+        <button
+          class="cm-icon-button"
           onClick={() => controller.openLibrary()}
           aria-label="Open all my highlights"
           title="All my highlights"
@@ -347,6 +357,71 @@ function Panel({ state, controller }: Props & { state: ViewState }) {
   );
 }
 
+function SearchPalette({ search, controller }: Props & { search: SearchState }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    const keys: Record<string, () => void> = {
+      Escape: () => controller.closeSearch(),
+      ArrowDown: () => controller.moveSearch(1),
+      ArrowUp: () => controller.moveSearch(-1),
+      Enter: () => controller.openSearchResult(),
+    };
+    const action = keys[event.key];
+    if (!action) return;
+    event.preventDefault();
+    action();
+  };
+
+  return (
+    <div
+      class="cm-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) controller.closeSearch();
+      }}
+    >
+      <div class="cm-palette" role="dialog" aria-label="Search your highlights" onKeyDown={onKeyDown}>
+        <input
+          ref={inputRef}
+          class="cm-palette-input"
+          type="text"
+          value={search.query}
+          placeholder="Search everything you've highlighted…"
+          aria-label="Search your highlights"
+          onInput={(event) => controller.searchFor(event.currentTarget.value)}
+        />
+        {search.results.length === 0 ? (
+          <p class="cm-empty">Nothing matches that.</p>
+        ) : (
+          <ul class="cm-palette-list">
+            {search.results.map((mark, index) => (
+              <li key={mark.id}>
+                <button
+                  class={index === search.active ? 'cm-palette-item cm-palette-on' : 'cm-palette-item'}
+                  onMouseEnter={() => controller.moveSearchTo(index)}
+                  onClick={() => controller.openSearchResult(mark)}
+                >
+                  <span class="cm-palette-site">{siteLabel(mark)}</span>
+                  <span class="cm-item-body">
+                    <span class="cm-text">{mark.snapshot}</span>
+                    {mark.note && <span class="cm-note">{mark.note}</span>}
+                  </span>
+                  <span class="cm-palette-chat">{mark.conversationTitle}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p class="cm-palette-footer">↑↓ to choose · Enter to open · Esc to close</p>
+      </div>
+    </div>
+  );
+}
+
 function rowClass(found: boolean, dragging: boolean): string | undefined {
   return [!found && 'cm-missing', dragging && 'cm-dragging'].filter(Boolean).join(' ') || undefined;
 }
@@ -372,6 +447,15 @@ function PencilIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-3.5-3.5" />
     </svg>
   );
 }
