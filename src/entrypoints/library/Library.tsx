@@ -2,12 +2,14 @@ import { browser } from '#imports';
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { createBackup, readBackup } from '../../core/backup';
+import { toMarkdown } from '../../core/markdown';
 import type { RuntimeMessage } from '../../core/messages';
 import { sortByOrder } from '../../core/order';
 import { HIGHLIGHT_COLORS } from '../../core/painter';
 import { searchMarks } from '../../core/search';
 import { siteLabel } from '../../core/sites';
 import { importMarks, loadAllMarks, removeMark, watchAllMarks } from '../../core/store';
+import { countTags, sameTag } from '../../core/tags';
 import { applyTheme, loadTheme, saveTheme, watchTheme, type Theme } from '../../core/theme';
 import type { Mark } from '../../core/types';
 
@@ -29,6 +31,7 @@ export function Library() {
   const [marks, setMarks] = useState<Mark[] | null>(null);
   const [query, setQuery] = useState('');
   const [site, setSite] = useState<string | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>('system');
@@ -57,9 +60,16 @@ export function Library() {
 
   const all = marks ?? [];
   const sites = countBySite(all);
-  const groups = groupByChat(searchMarks(site ? all.filter((m) => siteLabel(m) === site) : all, query));
+  const tags = countTags(all);
+  const filtered = all.filter(
+    (mark) =>
+      (!site || siteLabel(mark) === site) &&
+      (!activeTag || (mark.tags ?? []).some((tag) => sameTag(tag, activeTag))),
+  );
+  const groups = groupByChat(searchMarks(filtered, query));
   const total = all.length;
-  const shown = groups.reduce((sum, group) => sum + group.marks.length, 0);
+  const shownMarks = groups.flatMap((group) => group.marks);
+  const shown = shownMarks.length;
 
   const open = (mark: Mark) => {
     void browser.runtime.sendMessage({ type: 'open-mark', mark } satisfies RuntimeMessage);
@@ -71,14 +81,22 @@ export function Library() {
     setTimeout(() => setCopiedId((id) => (id === mark.id ? null : id)), 1500);
   };
 
-  const exportBackup = () => {
-    const file = new Blob([createBackup(all)], { type: 'application/json' });
+  const download = (contents: string, type: string, extension: string) => {
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(file);
-    link.download = `ai-bookmark-${new Date().toISOString().slice(0, 10)}.json`;
+    link.href = URL.createObjectURL(new Blob([contents], { type }));
+    link.download = `ai-bookmark-${new Date().toISOString().slice(0, 10)}.${extension}`;
     link.click();
     URL.revokeObjectURL(link.href);
+  };
+
+  const exportBackup = () => {
+    download(createBackup(all), 'application/json', 'json');
     setMessage(`Saved a backup of ${total} highlight${total === 1 ? '' : 's'}.`);
+  };
+
+  const exportMarkdown = () => {
+    download(toMarkdown(shownMarks), 'text/markdown', 'md');
+    setMessage(`Saved ${shown} highlight${shown === 1 ? '' : 's'} as Markdown.`);
   };
 
   const importBackup = async (event: Event) => {
@@ -142,14 +160,30 @@ export function Library() {
             ))}
           </div>
         )}
+        {tags.length > 0 && (
+          <div class="lib-filters" role="group" aria-label="Filter by tag">
+            {tags.map(([label, count]) => (
+              <button
+                key={label}
+                class={activeTag && sameTag(activeTag, label) ? 'lib-chip lib-chip-on' : 'lib-chip'}
+                onClick={() => setActiveTag(activeTag && sameTag(activeTag, label) ? null : label)}
+              >
+                #{label} {count}
+              </button>
+            ))}
+          </div>
+        )}
         <div class="lib-tools">
           <p class="lib-count">
             {marks === null
               ? 'Loading…'
-              : query || site
+              : query || site || activeTag
                 ? `${shown} of ${total} highlights`
                 : `${total} highlights`}
           </p>
+          <button class="lib-tool" onClick={exportMarkdown} disabled={shown === 0}>
+            Export Markdown
+          </button>
           <button class="lib-tool" onClick={exportBackup} disabled={total === 0}>
             Export backup
           </button>
@@ -197,6 +231,15 @@ export function Library() {
                   <span class="lib-body">
                     <span class="lib-text">{mark.snapshot}</span>
                     {mark.note && <span class="lib-note">{mark.note}</span>}
+                    {!!mark.tags?.length && (
+                      <span class="lib-tags">
+                        {mark.tags.map((tag) => (
+                          <span class="lib-tag" key={tag}>
+                            #{tag}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </span>
                 </button>
                 <button class="lib-action" onClick={() => void copyLink(mark)} title="Copy a link to this highlight">

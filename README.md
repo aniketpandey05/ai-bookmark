@@ -12,6 +12,7 @@ Highlight anything you read — AI chats or ordinary web pages — add a note, a
 - Select text in any message on **ChatGPT**, **Claude** or **Gemini** and pick a color.
 - Switch it on for **any other site** from the toolbar button: blogs, docs, Stack Overflow, GitHub.
 - Add a note to any highlight with the ✎ button, or by clicking highlighted text later. Highlights with notes get a dotted underline.
+- Tag a highlight in the same box. Tags pull related highlights together across chats and sites.
 - A side panel lists this page's highlights, numbered in the order you made them. Drag the ⋮⋮ grip to reorder, hover an entry to light up its highlight, click it to jump there.
 - In a long chat, jumping to a highlight in a part the site hasn't loaded yet scrolls up for you until it finds it.
 - Highlighting waits while a reply is still being written.
@@ -21,6 +22,8 @@ Highlight anything you read — AI chats or ordinary web pages — add a note, a
 - One library holds every highlight from every site, labelled with where it came from, filterable by site and searchable by text, note, chat name or site.
 - Clicking a highlight opens that page and scrolls straight to it, re-using the tab if it's already open.
 - Every highlight has a copyable link that lands on the exact spot.
+- Filter by tag as well as by site, and search covers tags too.
+- Export what you're looking at as Markdown — one section per chat, with your notes, tags and a link back — which drops straight into Obsidian or Notion.
 - Export a backup file of everything and import it on another computer.
 - Light, dark or match-your-system, chosen in the library and used everywhere, including the panel inside chats.
 

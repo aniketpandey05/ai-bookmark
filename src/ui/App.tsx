@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ChatmarksController, NoteCardState, SearchState, ViewState } from '../content/controller';
 import { HIGHLIGHT_COLORS } from '../core/painter';
 import { siteLabel } from '../core/sites';
+import { addTags, removeTag } from '../core/tags';
 import type { HighlightColor, Mark } from '../core/types';
 
 const COLORS = Object.keys(HIGHLIGHT_COLORS) as HighlightColor[];
@@ -95,6 +96,16 @@ function NoteCard({ card, mark, controller }: Props & { card: NoteCardState; mar
   const [note, setNote] = useState(mark.note ?? '');
   const cardRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const tags = mark.tags ?? [];
+
+  // Read the box itself, so a tag typed and confirmed in one go can't be missed.
+  const addTag = () => {
+    const typed = tagInputRef.current?.value ?? '';
+    if (tagInputRef.current) tagInputRef.current.value = '';
+    const next = addTags(tags, typed);
+    if (next.length !== tags.length) void controller.updateMark(mark.id, { tags: next });
+  };
 
   // Read the textarea itself so a save never sees an older render's value.
   const save = () => void controller.saveNote(mark.id, textareaRef.current?.value ?? note);
@@ -160,6 +171,31 @@ function NoteCard({ card, mark, controller }: Props & { card: NoteCardState; mar
         aria-label="Note"
         onInput={(event) => setNote(event.currentTarget.value)}
       />
+      <div class="cm-tags">
+        {tags.map((tag) => (
+          <button
+            key={tag}
+            class="cm-tag"
+            title={`Remove "${tag}"`}
+            onClick={() => void controller.updateMark(mark.id, { tags: removeTag(tags, tag) })}
+          >
+            {tag} <span aria-hidden="true">✕</span>
+          </button>
+        ))}
+        <input
+          ref={tagInputRef}
+          class="cm-tag-input"
+          type="text"
+          placeholder={tags.length ? 'Add another tag…' : 'Add a tag…'}
+          aria-label="Add a tag"
+          onBlur={addTag}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ',') return;
+            event.preventDefault();
+            addTag();
+          }}
+        />
+      </div>
       <div class="cm-card-footer">
         <span class="cm-hint">Ctrl+Enter to save · Esc to cancel</span>
         <button class="cm-primary-button" onClick={save}>
@@ -325,6 +361,15 @@ function Panel({ state, controller }: Props & { state: ViewState }) {
                 <span class="cm-item-body">
                   <span class="cm-text">{mark.label || mark.snapshot}</span>
                   {mark.note && <span class="cm-note">{mark.note}</span>}
+                  {!!mark.tags?.length && (
+                    <span class="cm-row-tags">
+                      {mark.tags.map((tag) => (
+                        <span class="cm-tag-chip" key={tag}>
+                          {tag}
+                        </span>
+                      ))}
+                    </span>
+                  )}
                 </span>
                 {!found && <span class="cm-badge">not found</span>}
               </button>

@@ -328,6 +328,21 @@ body {
   content: '✎ ';
 }
 
+.lib-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.lib-tag {
+  padding: 1px 7px;
+  font-size: 11px;
+  color: var(--lib-muted);
+  background: var(--lib-hover);
+  border-radius: 999px;
+}
+
 .lib-action {
   flex: none;
   padding: 12px 9px;

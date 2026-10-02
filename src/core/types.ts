@@ -28,6 +28,8 @@ export interface Mark {
   note?: string;
   /** Position in the user's list for this chat. New highlights go last; the user can reorder. */
   order?: number;
+  /** Free-form labels, for pulling related highlights together across chats and sites. */
+  tags?: string[];
   /** Copy of the marked text, kept even if the chat is edited or deleted. */
   snapshot: string;
   createdAt: number;

@@ -179,7 +179,7 @@ export class ChatmarksController {
     await upsertMark(mark);
   }
 
-  async updateMark(id: string, patch: Partial<Pick<Mark, 'color' | 'note'>>): Promise<void> {
+  async updateMark(id: string, patch: Partial<Pick<Mark, 'color' | 'note' | 'tags'>>): Promise<void> {
     const mark = this.marks.find((m) => m.id === id);
     if (!mark) return;
     const updated: Mark = { ...mark, ...patch, updatedAt: Date.now() };
