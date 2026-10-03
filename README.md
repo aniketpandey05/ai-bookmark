@@ -11,6 +11,7 @@ Highlight anything you read — AI chats or ordinary web pages — add a note, a
 **While you read**
 - Select text in any message on **ChatGPT**, **Claude** or **Gemini** and pick a color.
 - Switch it on for **any other site** from the toolbar button: blogs, docs, Stack Overflow, GitHub.
+- Switch any site **off** from the same button, the chat sites included. Everything disappears on that site and selections are ignored, while your highlights stay saved and return when you switch it back on. "Forget" an added site to hand its permission back to Chrome as well.
 - Add a note to any highlight with the ✎ button, or by clicking highlighted text later. Highlights with notes get a dotted underline.
 - Tag a highlight in the same box. Tags pull related highlights together across chats and sites.
 - A side panel lists this page's highlights, numbered in the order you made them. Drag the ⋮⋮ grip to reorder, hover an entry to light up its highlight, click it to jump there.
