@@ -1,22 +1,28 @@
 import { browser } from '#imports';
 import { useEffect, useState } from 'preact/hooks';
+import { loadDisabledSites, setSiteEnabled, watchDisabledSites } from '../../core/enabledSites';
 import type { RuntimeMessage } from '../../core/messages';
 
-const BUILT_IN: Record<string, string> = {
-  'chatgpt.com': 'ChatGPT',
-  'claude.ai': 'Claude',
-  'gemini.google.com': 'Gemini',
-};
+const BUILT_IN = [
+  { host: 'chatgpt.com', label: 'ChatGPT' },
+  { host: 'claude.ai', label: 'Claude' },
+  { host: 'gemini.google.com', label: 'Gemini' },
+];
 
 const send = (message: RuntimeMessage) => browser.runtime.sendMessage(message);
 const patternFor = (url: URL) => `${url.protocol}//${url.hostname}/*`;
+const hostFromPattern = (pattern: string) => pattern.replace(/^https?:\/\//, '').replace(/\/\*$/, '');
 
 export function Popup() {
   const [url, setUrl] = useState<URL | null>(null);
   const [ready, setReady] = useState(false);
-  const [sites, setSites] = useState<string[]>([]);
+  const [allowed, setAllowed] = useState<string[]>([]);
+  const [switchedOff, setSwitchedOff] = useState<string[]>([]);
 
-  const refresh = async () => setSites(((await send({ type: 'list-sites' })) as string[]) ?? []);
+  const refresh = async () => {
+    setAllowed(((await send({ type: 'list-sites' })) as string[]) ?? []);
+    setSwitchedOff(await loadDisabledSites());
+  };
 
   useEffect(() => {
     void (async () => {
@@ -29,26 +35,37 @@ export function Popup() {
       await refresh();
       setReady(true);
     })();
+    return watchDisabledSites(setSwitchedOff);
   }, []);
 
-  const enable = async (pattern: string) => {
+  const isOn = (host: string) => !switchedOff.includes(host);
+
+  const toggleSite = async (host: string, on: boolean) => {
+    await setSiteEnabled(host, on);
+    await refresh();
+  };
+
+  /** Allowing a new site needs Chrome's permission; everything else is just a switch. */
+  const allowCurrentSite = async (pattern: string, host: string) => {
     const granted = await browser.permissions.request({ origins: [pattern] });
     if (!granted) return;
+    await setSiteEnabled(host, true);
     await send({ type: 'sites-changed' });
     await refresh();
   };
 
-  const disable = async (pattern: string) => {
+  const forgetSite = async (pattern: string) => {
     await browser.permissions.remove({ origins: [pattern] });
+    await setSiteEnabled(hostFromPattern(pattern), true);
     await send({ type: 'sites-changed' });
     await refresh();
   };
 
   const hostname = url?.hostname ?? '';
-  const builtIn = BUILT_IN[hostname];
+  const builtIn = BUILT_IN.some((site) => site.host === hostname);
   const supported = url?.protocol === 'https:' || url?.protocol === 'http:';
   const pattern = url && supported ? patternFor(url) : null;
-  const on = pattern ? sites.includes(pattern) : false;
+  const knownHere = builtIn || (pattern ? allowed.includes(pattern) : false);
 
   return (
     <main class="pop">
@@ -56,10 +73,6 @@ export function Popup() {
 
       {!ready ? (
         <p class="pop-note">Loading…</p>
-      ) : builtIn ? (
-        <p class="pop-note">
-          <strong>{hostname}</strong> is {builtIn}. Highlighting is always on here.
-        </p>
       ) : !url ? (
         <p class="pop-note">Couldn't tell which page this is. Close this and click the icon again.</p>
       ) : !pattern ? (
@@ -71,8 +84,12 @@ export function Popup() {
         <label class="pop-toggle">
           <input
             type="checkbox"
-            checked={on}
-            onChange={() => void (on ? disable(pattern) : enable(pattern))}
+            checked={knownHere && isOn(hostname)}
+            onChange={() =>
+              void (knownHere
+                ? toggleSite(hostname, !isOn(hostname))
+                : allowCurrentSite(pattern, hostname))
+            }
           />
           <span class="pop-switch" aria-hidden="true" />
           <span>
@@ -81,22 +98,59 @@ export function Popup() {
         </label>
       )}
 
-      {ready && pattern && !on && !builtIn && (
-        <p class="pop-hint">Chrome will ask you to allow this site. Nothing is enabled until you do.</p>
+      {ready && pattern && !knownHere && (
+        <p class="pop-hint">Chrome will ask you to allow this site. Nothing happens until you do.</p>
       )}
 
-      {sites.length > 0 && (
+      <section class="pop-sites">
+        <h2>Built in</h2>
+        <ul>
+          {BUILT_IN.map(({ host, label }) => (
+            <li key={host}>
+              <span>{label}</span>
+              <label class="pop-row-toggle">
+                <input
+                  type="checkbox"
+                  checked={isOn(host)}
+                  aria-label={`Highlight on ${label}`}
+                  onChange={() => void toggleSite(host, !isOn(host))}
+                />
+                <span class="pop-switch pop-switch-small" aria-hidden="true" />
+              </label>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {allowed.length > 0 && (
         <section class="pop-sites">
-          <h2>Sites you've switched on</h2>
+          <h2>Sites you've added</h2>
           <ul>
-            {sites.map((site) => (
-              <li key={site}>
-                <span>{site.replace(/^https?:\/\//, '').replace(/\/\*$/, '')}</span>
-                <button onClick={() => void disable(site)} aria-label={`Turn off ${site}`}>
-                  ✕
-                </button>
-              </li>
-            ))}
+            {allowed.map((site) => {
+              const host = hostFromPattern(site);
+              return (
+                <li key={site}>
+                  <span title={host}>{host}</span>
+                  <label class="pop-row-toggle">
+                    <input
+                      type="checkbox"
+                      checked={isOn(host)}
+                      aria-label={`Highlight on ${host}`}
+                      onChange={() => void toggleSite(host, !isOn(host))}
+                    />
+                    <span class="pop-switch pop-switch-small" aria-hidden="true" />
+                  </label>
+                  <button
+                    class="pop-forget"
+                    onClick={() => void forgetSite(site)}
+                    aria-label={`Forget ${host}`}
+                    title="Forget this site and give the permission back"
+                  >
+                    ✕
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

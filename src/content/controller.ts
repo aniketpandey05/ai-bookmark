@@ -1,6 +1,7 @@
 import { browser, type ContentScriptContext } from '#imports';
 import type { MessageRef, SiteAdapter } from '../adapters/types';
 import { debounce } from '../core/debounce';
+import { loadDisabledSites, watchDisabledSites } from '../core/enabledSites';
 import { describeMessage, resolveMarks, type ResolvedMark } from '../core/locate';
 import type { PendingJump, RuntimeMessage } from '../core/messages';
 import { moveItem, nextOrder, sortByOrder } from '../core/order';
@@ -65,6 +66,8 @@ export interface Tick {
 }
 
 export interface ViewState {
+  /** False when the user switched highlighting off for this site. */
+  enabled: boolean;
   conversationId: string | null;
   /** Highlights in the user's order. */
   items: PanelItem[];
@@ -91,6 +94,7 @@ interface PendingSelection {
 
 export class ChatmarksController {
   private state: ViewState = {
+    enabled: true,
     conversationId: null,
     items: [],
     ticks: [],
@@ -163,6 +167,14 @@ export class ChatmarksController {
     this.theme = await loadTheme();
     watchTheme((theme) => {
       this.theme = theme;
+      this.refresh();
+    });
+
+    const isOn = (disabled: string[]) => !disabled.includes(location.hostname);
+    this.setState({ enabled: isOn(await loadDisabledSites()) });
+    watchDisabledSites((disabled) => {
+      if (isOn(disabled) === this.state.enabled) return;
+      this.setState({ enabled: isOn(disabled) });
       this.refresh();
     });
 
@@ -486,7 +498,15 @@ export class ChatmarksController {
   }
 
   private refresh(): void {
-    const { conversationId, card } = this.state;
+    const { conversationId, card, enabled } = this.state;
+    if (!enabled) {
+      // Switched off here: stop painting and show nothing, but keep everything saved.
+      this.resolved.clear();
+      this.painter.paint([]);
+      this.painter.clearFlash();
+      this.setState({ items: [], ticks: [], card: null, selection: null, search: null });
+      return;
+    }
     const messages = conversationId ? this.adapter.getMessages() : [];
     const { resolved } = resolveMarks(this.marks, messages, (m) => this.adapter.getContentRoot(m));
     this.resolved = new Map(resolved.map((r) => [r.mark.id, r]));
@@ -546,6 +566,7 @@ export class ChatmarksController {
 
   private captureSelection = (): void => {
     const selection = window.getSelection();
+    if (!this.state.enabled) return;
     if (!this.state.conversationId || !selection || selection.isCollapsed || !selection.rangeCount) {
       this.clearSelectionDraft();
       return;
@@ -587,7 +608,7 @@ export class ChatmarksController {
 
   /** A plain click on highlighted text opens that highlight's note. */
   private onClick = (event: MouseEvent): void => {
-    if (event.button !== 0 || !window.getSelection()?.isCollapsed) return;
+    if (!this.state.enabled || event.button !== 0 || !window.getSelection()?.isCollapsed) return;
     const ignored = event
       .composedPath()
       .some((node) => node instanceof Element && (node.localName === UI_TAG || node.matches(INTERACTIVE)));
@@ -607,6 +628,7 @@ export class ChatmarksController {
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {
+    if (!this.state.enabled) return;
     if (event.altKey && event.shiftKey && (event.code === 'KeyH' || event.code === 'KeyN')) {
       void this.highlight('yellow', { withNote: event.code === 'KeyN' });
     } else if (event.altKey && event.shiftKey && event.code === 'KeyF') {

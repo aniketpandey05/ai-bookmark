@@ -20,7 +20,7 @@ interface Props {
 
 export function App({ controller }: Props) {
   const state = useViewState(controller);
-  if (!state.conversationId) return null;
+  if (!state.enabled || !state.conversationId) return null;
   const cardMark = state.card && state.items.find((item) => item.mark.id === state.card?.markId)?.mark;
   return (
     <div class={state.dark ? 'cm-root cm-dark' : 'cm-root'}>
